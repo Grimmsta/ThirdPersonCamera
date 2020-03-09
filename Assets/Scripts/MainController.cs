@@ -6,12 +6,15 @@ public class MainController : MonoBehaviour
 {
     public int movementSpeed = 10;
     public int rotationSpeed = 100;
+ 
+    [SerializeField]
+    Transform playerInputSpace = default;
+
+    public bool useCameraDirection = false;  
 
     Vector2 playerInput;
     Vector3 movement;
 
-    [SerializeField]
-    Transform playerInputSpace = default;
 
     // Start is called before the first frame update
     void Start()
@@ -24,9 +27,9 @@ public class MainController : MonoBehaviour
     void Update()
     {
         playerInput.y = Input.GetAxis("Vertical") * movementSpeed * Time.deltaTime;
-        playerInput.x = Input.GetAxis("Horizontal") * rotationSpeed * Time.deltaTime;
+        playerInput.x = Input.GetAxis("Horizontal") * movementSpeed * Time.deltaTime;
 
-        if (playerInputSpace) //Only moving forward with the direction of where you're looking
+        if (playerInputSpace && useCameraDirection) //Only moving forward with the direction of where you're looking
         {
             rotationSpeed = movementSpeed;
             Vector3 forward = playerInputSpace.forward;
@@ -39,8 +42,8 @@ public class MainController : MonoBehaviour
         }
         else
         {
-            transform.Rotate(0, playerInput.x, 0);
-            transform.Translate(0, 0, playerInput.y);
+            //transform.Rotate(0, playerInput.x, 0);
+            transform.Translate(playerInput.x, 0, playerInput.y);
         }
         transform.localPosition += movement;
     }

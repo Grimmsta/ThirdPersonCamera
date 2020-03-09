@@ -17,16 +17,16 @@ public class CameraController : MonoBehaviour
     [SerializeField]
     Transform player = default;
 
-    [SerializeField]
+    [SerializeField, Tooltip("Choose what layers should be blocking the view")]
     LayerMask obstructionMask = -1;
 
-    [SerializeField, Range(OFFSET_MIN, OFFSET_MAX)]
+    [SerializeField, Range(OFFSET_MIN, OFFSET_MAX), Tooltip("The distance between the player and the camera")]
     float offsetDistance = 20f; //Distance between player and camera
 
-    [SerializeField, Min(0f)]
+    [SerializeField, Min(0f), Tooltip("An area where the player can move within without ")]
     float focusRadius = 1f; //Gives a radius where the player can move without the camera following
 
-    [SerializeField, Range(0f, 1f)]
+    [SerializeField, Range(0f, 1f, Tooltip("A percentage of the are you can move within before the camera starts moving. 0 = long delay, 1 = immeaditly"))]
     float focusCentering = 0.75f;
 
     [SerializeField, Range(1f, 360f)]
@@ -200,7 +200,6 @@ public class CameraController : MonoBehaviour
     {
         offsetDistance -= Input.GetAxis("Mouse ScrollWheel") * Time.deltaTime * zoomSpeed;
         offsetDistance = Mathf.Clamp(offsetDistance, OFFSET_MIN, OFFSET_MAX);
-        //TODO: make so we can change the offsetdistance with mousewheel
     }
 
     Vector3 CameraHalfExtends
