@@ -14,11 +14,13 @@ public class CameraController : MonoBehaviour
     public const float ZOOM_MIN = 0f;
     public const float ZOOM_MAX = 1f;
 
-    public Transform player = default;
-    public Transform camTransform;
-    Camera regularcam;
-    
-    [SerializeField, Range(1f, 20f)]
+    [SerializeField]
+    Transform player = default;
+
+    [SerializeField]
+    LayerMask obstructionMask = -1;
+
+    [SerializeField, Range(OFFSET_MIN, OFFSET_MAX)]
     float offsetDistance = 20f; //Distance between player and camera
 
     [SerializeField, Min(0f)]
@@ -39,11 +41,9 @@ public class CameraController : MonoBehaviour
     [SerializeField, Range(0f, 90f)]
     float alignSmoothRange = 45f;
 
-    public float zoomSpeed = 410;
+    Camera regularCamera;
 
-    float horizontal = 0;
-    float vertical = 0;
-    float zoom = 0;
+    public float zoomSpeed = 410;
 
     float lastManualRotationTime;
 
@@ -55,15 +55,9 @@ public class CameraController : MonoBehaviour
 
     void Awake()
     {
-        regularcam = GetComponent<Camera>();
+        regularCamera = GetComponent<Camera>();
         focusPoint = player.position;
         transform.localRotation = Quaternion.Euler(orbitAngles);
-    }
-
-    void Start()
-    {
-        camTransform = transform;
-        cam = Camera.main;
     }
 
     private void OnValidate()
@@ -78,6 +72,7 @@ public class CameraController : MonoBehaviour
     void LateUpdate()
     {
         UpdateFocusPoint();
+        ZoomInAndOut();
         Quaternion lookRotation;
         
         if (ManualRotation() || AutomaticRotation()) //We only need to constraint the angles if they been changed, so we check for that
@@ -91,36 +86,23 @@ public class CameraController : MonoBehaviour
         }
 
         //Set the position and rotation for the camera
-        Vector3 lookDir = lookRotation * Vector3.forward;
-        Vector3 lookPosition = focusPoint - lookDir * offsetDistance;
+        Vector3 lookDirection = lookRotation * Vector3.forward;
+        Vector3 lookPosition = focusPoint - lookDirection * offsetDistance;
 
-        if (Physics.Raycast(focusPoint, -lookDir, out RaycastHit hit, offsetDistance))
+        Vector3 rectOffset = lookDirection * regularCamera.nearClipPlane;
+        Vector3 rectPosition = lookPosition + rectOffset;
+        Vector3 castFrom = player.position;
+        Vector3 castLine = rectPosition - castFrom;
+        float castDistance = castLine.magnitude;
+        Vector3 castDirection = castLine / castDistance;
+
+        if (Physics.BoxCast(castFrom, CameraHalfExtends, castDirection, out RaycastHit hit, lookRotation, castDistance - regularCamera.nearClipPlane, obstructionMask))
         {
-            lookPosition = focusPoint - lookDir * hit.distance;
+            rectPosition = castFrom + castDirection * hit.distance;
+            lookPosition = rectPosition-rectOffset;
         }
 
         transform.SetPositionAndRotation(lookPosition, lookRotation);
-
-        //float playerRotation = Input.GetAxis("Mouse X") * Time.deltaTime * rotationSpeed;
-        //player.Rotate(0, playerRotation, 0);
-
-        //horizontal += Input.GetAxis("Mouse X") * Time.deltaTime * rotationSpeed;
-
-        //zoom += Input.GetAxis("Mouse ScrollWheel")*Time.deltaTime* zoomSpeed;
-
-        //offsetDistance -= zoom;
-
-        //vertical += Input.GetAxis("Mouse Y") * Time.deltaTime*rotationSpeed;
-
-        //zoom = Mathf.Clamp(zoom, ZOOM_MIN, ZOOM_MAX);
-        //offsetDistance = Mathf.Clamp(offsetDistance, OFFSET_MIN, OFFSET_MAX);
-        //vertical = Mathf.Clamp(vertical, Y_ANGLE_MIN, Y_ANGLE_MAX);
-
-        //Vector3 direction = new Vector3(0, 0, offsetDistance);
-        //Quaternion rotation = Quaternion.Euler(vertical, horizontal, 0);
-        //camTransform.position = player.position - (rotation * direction);
-
-        //transform.LookAt(player);
     }
 
     void UpdateFocusPoint()
@@ -138,7 +120,7 @@ public class CameraController : MonoBehaviour
             }
             if (distance >0.01f && focusCentering >0f)
             {
-                focusPoint = Vector3.Lerp(targetPoint, focusPoint, Mathf.Pow(1f - focusCentering, Time.deltaTime)); //Lerping between the two points, smoothing the lerping out with the Pow method
+                focusPoint = Vector3.Lerp(targetPoint, focusPoint, Mathf.Pow(1f - focusCentering, Time.unscaledDeltaTime)); //Lerping between the two points, smoothing the lerping out with the Pow method
             }
         }
         else 
@@ -162,12 +144,14 @@ public class CameraController : MonoBehaviour
 
     bool AutomaticRotation()
     {
-        if (Time.unscaledTime - lastManualRotationTime < alignDelay) //Check if we should kick in automatic alignment
+        if (Time.unscaledTime - lastManualRotationTime < alignDelay)        //Check if we should kick in automatic alignment
         {
             return false;
         }
 
-        Vector2 movement = new Vector2(focusPoint.x - previousFocusPoint.x, focusPoint.z - previousFocusPoint.z); //Setting movement by checking the movement on a 2D plane
+        Vector2 movement = new Vector2(focusPoint.x - previousFocusPoint.x, //Setting movement by checking the movement on a 2D plane
+                                       focusPoint.z - previousFocusPoint.z); 
+        
         float movementDeltaSqr = movement.sqrMagnitude; //Getting the change in movement by squaring the movement
 
         if (movementDeltaSqr < e) //Check if there has been a change in movement
@@ -185,7 +169,7 @@ public class CameraController : MonoBehaviour
         }
         else if (180f - deltaAbs < alignSmoothRange)
         {
-            rotationSpeed *= (180f - deltaAbs) / alignSmoothRange;
+            rotationChange *= (180f - deltaAbs) / alignSmoothRange;
         }
 
         orbitAngles.y = Mathf.MoveTowardsAngle(orbitAngles.y, headingAngle, rotationChange);
@@ -210,5 +194,24 @@ public class CameraController : MonoBehaviour
     {
         float angle = Mathf.Acos(direction.y) * Mathf.Rad2Deg; //Calculates the angle in which the player is heading
         return direction.x < 0f ? 360- angle : angle; //Since the angle can be clock or counterclockwise, we need to check the x value of our current direction as well 
+    }
+
+    void ZoomInAndOut()
+    {
+        offsetDistance -= Input.GetAxis("Mouse ScrollWheel") * Time.deltaTime * zoomSpeed;
+        offsetDistance = Mathf.Clamp(offsetDistance, OFFSET_MIN, OFFSET_MAX);
+        //TODO: make so we can change the offsetdistance with mousewheel
+    }
+
+    Vector3 CameraHalfExtends
+    {
+        get
+        {
+            Vector3 halfExtends;
+            halfExtends.y = regularCamera.nearClipPlane * Mathf.Tan(0.5f * Mathf.Deg2Rad * regularCamera.fieldOfView);
+            halfExtends.x = halfExtends.y * regularCamera.aspect;
+            halfExtends.z = 0f;
+            return halfExtends;
+        }
     }
 }
