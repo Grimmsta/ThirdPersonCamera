@@ -26,7 +26,7 @@ public class CameraController : MonoBehaviour
     [SerializeField, Min(0f), Tooltip("An area where the player can move within without ")]
     float focusRadius = 1f; //Gives a radius where the player can move without the camera following
 
-    [SerializeField, Range(0f, 1f, Tooltip("A percentage of the are you can move within before the camera starts moving. 0 = long delay, 1 = immeaditly"))]
+    [SerializeField, Range(0f, 1f), Tooltip("A percentage of the are you can move within before the camera starts moving. 0 = long delay, 1 = immediately")]
     float focusCentering = 0.75f;
 
     [SerializeField, Range(1f, 360f)]
