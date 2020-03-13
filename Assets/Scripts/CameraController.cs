@@ -1,18 +1,12 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
-    public const float Y_ANGLE_MIN = 0f;
-    public const float Y_ANGLE_MAX = 50f;
+    public const float Y_ANGLE_MIN = -10f;
+    public const float Y_ANGLE_MAX = 90f;
 
     public const float OFFSET_MIN = 2f;
     public const float OFFSET_MAX = 20f;
-    
-    public const float ZOOM_MIN = 0f;
-    public const float ZOOM_MAX = 1f;
 
     [SerializeField]
     Transform player = default;
@@ -29,21 +23,22 @@ public class CameraController : MonoBehaviour
     [SerializeField, Range(0f, 1f), Tooltip("A percentage of the are you can move within before the camera starts moving. 0 = long delay, 1 = immediately")]
     float focusCentering = 0.75f;
 
-    [SerializeField, Range(1f, 360f)]
+    [SerializeField, Range(1f, 360f), Tooltip("Amount of degrees rotating per second")]
     float rotationSpeed = 90f;
 
-    [SerializeField, Range(-89f, 89f)]
+    [SerializeField, Range(OFFSET_MIN, OFFSET_MAX), Tooltip("Capping the max and min vertical angle of the player controller")]
     float minVerticalAngle = -30f, maxVerticalAngle = 60f;
 
-    [SerializeField, Min(0f)]
+    [SerializeField, Min(0f), Tooltip("Amount of seconds before automatic rotation kicks in")]
     float alignDelay = 5f;
 
-    [SerializeField, Range(0f, 90f)]
+    [SerializeField, Range(0f, 90f), Tooltip("Max angle to rotate linearly, after that we rotate according to the rotation speed")]
     float alignSmoothRange = 45f;
 
-    Camera regularCamera;
+    [SerializeField, Tooltip("How fast we can zoom in towards the player")]
+    float zoomSpeed = 410;
 
-    public float zoomSpeed = 410;
+    Camera regularCamera;
 
     float lastManualRotationTime;
 
@@ -68,7 +63,6 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     void LateUpdate()
     {
         UpdateFocusPoint();

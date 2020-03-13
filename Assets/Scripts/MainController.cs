@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class MainController : MonoBehaviour
 {
@@ -15,15 +13,12 @@ public class MainController : MonoBehaviour
     Vector2 playerInput;
     Vector3 movement;
 
-
-    // Start is called before the first frame update
     void Start()
     {
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    // Update is called once per frame
     void Update()
     {
         playerInput.y = Input.GetAxis("Vertical") * movementSpeed * Time.deltaTime;
